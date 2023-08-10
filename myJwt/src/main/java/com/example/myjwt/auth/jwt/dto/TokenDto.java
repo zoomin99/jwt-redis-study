@@ -1,4 +1,4 @@
-package com.example.myjwt.dto;
+package com.example.myjwt.auth.jwt.dto;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -8,6 +8,5 @@ import lombok.Getter;
 public class TokenDto {
 
     private String accessToken;
-
     private String refreshToken;
 }

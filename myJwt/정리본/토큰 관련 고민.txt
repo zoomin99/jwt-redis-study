@@ -1,0 +1,36 @@
+refresh, access를 어떻게 저장하느냐
+
+local storage vs 쿠키
+xss 취약          csrf 취약
+
+그래서 access는 local storage에
+(기간이 짧아서 xss로 탈취돼도 리스크 헷징)
+
+refresh는 쿠키에 넣는다
+(http only 등등 보안 옵션을 넣고 이부분은 나중에 더 테스트 필요)
+(csrf는 리프레쉬 이므로 한다 하더라도 access만 재발급 가능해서 할 게 없음
+단순히 요청만 보낼 수 있는거라 응답 가로채거나 하는게 아니니까)
+
+그리고 refresh로 재발급 관련해서도
+redis에 key를 뭐로 결정하느냐 email vs 토큰
+email이 맞다 판단
+
+        Claims claims = jwtTokenUtil.parseRefreshTokenClaims(refreshToken);
+        String email = jwtTokenUtil.getEmail(claims);
+
+        String refreshTokenInRedis = redisTemplateRepository.getData(email);
+
+        if (refreshTokenInRedis == null || !refreshTokenInRedis.equals(refreshToken)) {
+            throw new TokenException(TokenExceptionType.INVALID_REFRESH_TOKEN);
+        }
+
+쿠키에 있는게 유효한지 검증하고 그걸 redis에서 한번 더 검증해서 이중 검증
+
+        final TestMember testMember = memberRepository.findByMemberEmail(email)
+                .orElseThrow(() -> new TokenException(TokenExceptionType.INVALID_REFRESH_TOKEN));
+
+그리고 멤버를 다시 db에서 꺼내와 그 정보로 access만 재발급
+이 부분은 인가 검증할때 토큰에서 권한을 가져와서 권한이 업데이트 됐을때 어떻게 해야될지 고민했던거랑 연관
+access는 짧으니까 괜찮고 (근데 이부분도 보완이 필요할거 같긴 함)
+refresh로 재발급 받을때 토큰을 갱신하면서 권한도 다시 보니까
+완벽한 방법은 아니지만 이것도 헷징

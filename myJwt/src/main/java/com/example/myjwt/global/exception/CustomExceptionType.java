@@ -6,5 +6,7 @@ public interface CustomExceptionType {
 
     HttpStatus getHttpStatus();
 
-    String getErrorMsg();
+    String getCode();
+
+    String getMessage();
 }

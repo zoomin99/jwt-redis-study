@@ -1,4 +1,4 @@
-package com.example.myjwt.jwt.handler;
+package com.example.myjwt.auth.jwt.handler;
 
 import com.google.gson.JsonObject;
 import org.springframework.http.MediaType;

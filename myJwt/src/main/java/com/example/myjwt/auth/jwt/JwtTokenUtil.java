@@ -1,8 +1,8 @@
-package com.example.myjwt.jwt;
+package com.example.myjwt.auth.jwt;
 
-import com.example.myjwt.dto.TokenDto;
-import com.example.myjwt.jwt.exception.TokenException;
-import com.example.myjwt.jwt.exception.TokenExceptionType;
+import com.example.myjwt.auth.jwt.dto.TokenDto;
+import com.example.myjwt.auth.jwt.exception.TokenException;
+import com.example.myjwt.auth.jwt.exception.TokenExceptionType;
 import com.example.myjwt.member.dto.request.MemberRequestDto;
 import com.example.myjwt.member.entity.Member;
 import com.example.myjwt.member.entity.TestMember;
@@ -126,6 +126,7 @@ public class JwtTokenUtil {
                 .setHeaderParam(Header.TYPE, Header.JWT_TYPE)
                 .setIssuer(jwtProperties.getIssuer())
                 .setIssuedAt(Date.from(now))
+                .claim(NAME_KEY, member.getMemberEmail())
                 .setExpiration(Date.from(now.plus(REFRESH_TOKEN_EXPIRE_TIME, ChronoUnit.MILLIS)))
                 .signWith(key, SignatureAlgorithm.HS512)
                 .compact();
@@ -134,6 +135,30 @@ public class JwtTokenUtil {
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .build();
+    }
+
+    public String reissueAccessToken(TestMember member) {
+        final String authoritiesString = member.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(","));
+
+        Instant now = Instant.now();
+
+        String accessToken = Jwts.builder()
+                .setHeaderParam(Header.TYPE, Header.JWT_TYPE)
+                .setIssuer(jwtProperties.getIssuer())
+                .setIssuedAt(Date.from(now))
+                .claim(NAME_KEY, member.getMemberEmail())
+                .claim(AUTHORITIES_KEY, authoritiesString)
+                .setExpiration(Date.from(now.plus(ACCESS_TOKEN_EXPIRE_TIME, ChronoUnit.MILLIS)))
+                .signWith(key, SignatureAlgorithm.HS512)
+                .compact();
+
+        return accessToken;
+    }
+
+    public String getEmail(Claims claims) {
+        return claims.get(NAME_KEY).toString();
     }
 
     public Authentication getAuthentication(Claims claims) {
@@ -151,7 +176,7 @@ public class JwtTokenUtil {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-        MemberRequestDto.Access principal = MemberRequestDto.Access.from(claims.get(NAME_KEY).toString(), authorityStrings);
+        MemberRequestDto.Access principal = MemberRequestDto.Access.from(getEmail(claims), authorityStrings);
 
         return new UsernamePasswordAuthenticationToken(principal, "", authorities);
     }
@@ -166,6 +191,26 @@ public class JwtTokenUtil {
         }
     }
 
+    public Claims parseAccessTokenClaims(String accessToken) {
+        try {
+            return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(accessToken).getBody();
+        } catch (ExpiredJwtException e) {
+            throw new TokenException(TokenExceptionType.EXPIRED_ACCESS_TOKEN);
+        } catch (Exception e) {
+            throw new TokenException(TokenExceptionType.INVALID_ACCESS_TOKEN);
+        }
+    }
+
+    public Claims parseRefreshTokenClaims(String refreshToken) {
+        try {
+            return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(refreshToken).getBody();
+        } catch (ExpiredJwtException e) {
+            throw new TokenException(TokenExceptionType.EXPIRED_REFRESH_TOKEN);
+        } catch (Exception e) {
+            throw new TokenException(TokenExceptionType.INVALID_REFRESH_TOKEN);
+        }
+    }
+
     public Long getExpiration(String token) {
 
         Claims claims = parseClaims(token);
@@ -175,10 +220,4 @@ public class JwtTokenUtil {
         return (expiration.getTime() - now);
     }
 
-    public Boolean isExpired(String token) {
-        if (getExpiration(token) > 0) {
-            return false;
-        }
-        return true;
-    }
 }

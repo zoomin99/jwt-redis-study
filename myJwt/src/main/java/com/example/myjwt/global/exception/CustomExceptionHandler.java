@@ -15,15 +15,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class CustomExceptionHandler {
 
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<String> customExceptionHandler(CustomException e) {
+    public ResponseEntity<ErrorResponse> customExceptionHandler(CustomException e) {
         log.error("--------------------------------");
         log.error("StackTrace = {} ", (Object) e.getStackTrace());
         log.error("HttpStatus = {} ", e.getCustomExceptionType().getHttpStatus());
-        log.error("ErrorMsg = {} ", e.getCustomExceptionType().getErrorMsg());
+        log.error("Code = {} ", e.getCustomExceptionType().getCode());
+        log.error("Message = {} ", e.getCustomExceptionType().getMessage());
         log.error("--------------------------------");
 
+        final ErrorResponse errorResponse = ErrorResponse.of(e.getCustomExceptionType().getCode(), e.getCustomExceptionType().getMessage());
+
         return ResponseEntity.status(e.getCustomExceptionType().getHttpStatus())
-                .body(e.getCustomExceptionType().getErrorMsg());
+                .body(errorResponse);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -45,7 +48,7 @@ public class CustomExceptionHandler {
         log.error("--------------------------------");
         log.error("StackTrace = {} ", (Object) e.getStackTrace());
         log.error("HttpStatus = {} ", httpStatus);
-        log.error("ErrorMsg = {} ", errorMsg);
+        log.error("Message = {} ", errorMsg);
         log.error("--------------------------------");
 
         return ResponseEntity.status(httpStatus)
@@ -61,7 +64,7 @@ public class CustomExceptionHandler {
         log.error("--------------------------------");
         log.error("StackTrace = {} ", (Object) e.getStackTrace());
         log.error("HttpStatus = {} ", httpStatus);
-        log.error("ErrorMsg = {} ", errorMsg);
+        log.error("Message = {} ", errorMsg);
         log.error("--------------------------------");
 
         return ResponseEntity.status(httpStatus)

@@ -1,4 +1,4 @@
-package com.example.myjwt.jwt.exception;
+package com.example.myjwt.auth.jwt.exception;
 
 import com.example.myjwt.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;

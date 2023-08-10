@@ -1,0 +1,38 @@
+jwt필터를 초기에 @Configuration으로 빈 등록을 하고
+
+RequiredArgs
+private final ~
+자동 생성자 주입으로 하고 썼는데
+그러면 빈으로 등록돼서 필터로 기본 등록이 되고 (ApplicationFilterChain)
+.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+여기서 SecurityFilterChain 에도 등록 된다.
+ref: https://bitgadak.tistory.com/10
+
+그래서 jwtFilter @Configuration을 제거해서 빈 등록을 하지 않고
+.addFilterBefore(new JwtFilter(jwtTokenUtil), UsernamePasswordAuthenticationFilter.class)
+이렇게 등록하면 SecurityFilterChain에만 등록한다.
+
+.permitAll은 SecurityFilterChain 을 안거치는게 아니라 인증 인가 없이 허용이라
+.permitAll에 로그인 페이지를 넣어도 jwt필터를 통과함
+
+그래서 SecurityFilterChain을 아예 거치지 않게 하기위해
+
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring().antMatchers(AUTH_WHITELIST);
+    }
+
+이렇게 하였지만
+You are asking Spring Security to ignore Ant [pattern='/login']. This is not recommended -- please use permitAll
+스프링 시큐리티에서 권장하지 않음
+
+그래서 jwtFilter에
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        return Arrays.stream(AUTH_WHITELIST).anyMatch(path::startsWith);
+    }
+
+를 적용해서 jwtFilter를 타지 않는 url들 따로 정의
+에러 페이지도 jwt토큰을 검사하지 않게 추가

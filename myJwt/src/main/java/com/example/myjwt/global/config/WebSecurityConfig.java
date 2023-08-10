@@ -1,17 +1,15 @@
 package com.example.myjwt.global.config;
 
-import com.example.myjwt.jwt.JwtFilter;
-import com.example.myjwt.jwt.JwtTokenUtil;
-import com.example.myjwt.jwt.handler.CustomAccessDeniedHandler;
-import com.example.myjwt.jwt.handler.CustomAuthenticationEntryPoint;
-import com.example.myjwt.jwt.handler.JwtExceptionHandlerFilter;
+import com.example.myjwt.auth.jwt.JwtFilter;
+import com.example.myjwt.auth.jwt.JwtTokenUtil;
+import com.example.myjwt.auth.jwt.handler.CustomAccessDeniedHandler;
+import com.example.myjwt.auth.jwt.handler.CustomAuthenticationEntryPoint;
+import com.example.myjwt.auth.jwt.handler.JwtExceptionHandlerFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -28,6 +26,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class WebSecurityConfig {
 
     private final JwtTokenUtil jwtTokenUtil;
+    private static final String[] AUTH_WHITELIST = {"/login", "/members", "/reissue", "/error"};
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
@@ -37,7 +36,8 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-                .cors().and()
+                .cors()
+                .and()
                 //configurationSource(corsConfigurationSource()).
                 //cors 설정 아래의 CorsConfigurationSource 이름을 가진 빈이 있으면 자동 설정
                 .csrf().disable()
@@ -46,12 +46,13 @@ public class WebSecurityConfig {
                 .formLogin().disable()
                 .logout().disable()
                 //기본 인증 로그인과 기본 로그인페이지 사용 안하므로
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
                 //jwt기반 stateless 인증을 하므로
                 .authorizeRequests()
-                .antMatchers(HttpMethod.POST, "/members", "/login").permitAll()
-                .antMatchers("/hi").hasAnyRole("ADMIN")
-                .anyRequest().authenticated().and()
+                .antMatchers(AUTH_WHITELIST).permitAll()
+                .anyRequest().authenticated()
+                .and()
 
                 .exceptionHandling()
                 .accessDeniedHandler(accessDeniedHandler())
@@ -61,10 +62,10 @@ public class WebSecurityConfig {
                 .build();
     }
 
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring().antMatchers("/login", "/members");
-    }
+//    @Bean
+//    public WebSecurityCustomizer webSecurityCustomizer() {
+//        return (web) -> web.ignoring().antMatchers(AUTH_WHITELIST);
+//    }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

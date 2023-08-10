@@ -1,0 +1,5 @@
+인증(Authentication) vs. 인가(Authorization)
+
+간단하게 인증은 로그인이 되었는가
+
+인가는 권한이 있는가(admin과 같이)
