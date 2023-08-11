@@ -1,5 +1,6 @@
 package com.example.myjwt.auth.controller;
 
+import com.example.myjwt.auth.jwt.JwtTokenUtil;
 import com.example.myjwt.auth.jwt.dto.TokenDto;
 import com.example.myjwt.auth.jwt.exception.TokenException;
 import com.example.myjwt.auth.jwt.exception.TokenExceptionType;
@@ -20,6 +21,7 @@ import javax.servlet.http.HttpServletResponse;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtTokenUtil jwtTokenUtil;
 
     @PostMapping("/members")
     public ResponseEntity<String> signUp(@RequestBody MemberRequestDto.SignUp signUp) {
@@ -31,7 +33,21 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<TokenDto> login(@RequestBody MemberRequestDto.Login login, HttpServletResponse response) {
 
-        TokenDto tokenDto = authService.login(login, response);
+        TokenDto tokenDto = authService.login(login);
+
+        final String refreshToken = tokenDto.getRefreshToken();
+        final Long expiration = jwtTokenUtil.getExpiration(refreshToken);
+        final Long expirationSecond = expiration / 1000;
+
+        Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
+
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setMaxAge(expirationSecond.intValue());
+//        refreshTokenCookie.setDomain("localhost");
+//        refreshTokenCookie.setSecure(true); // HTTPS에서만 전송
+//        refreshTokenCookie.setPath("/"); // 경로 설정
+        response.addCookie(refreshTokenCookie);
+
 
         return ResponseEntity.ok(tokenDto);
     }

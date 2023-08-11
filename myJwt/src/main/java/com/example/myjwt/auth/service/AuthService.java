@@ -44,7 +44,7 @@ public class AuthService {
                         .build());
     }
 
-    public TokenDto login(MemberRequestDto.Login login, HttpServletResponse response) {
+    public TokenDto login(MemberRequestDto.Login login) {
         final TestMember testMember = memberRepository.findByMemberEmail(login.getMemberEmail())
                 .orElseThrow(() -> new AuthException(AuthExceptionType.INVALID_EMAIL_OR_PASSWORD));
 
@@ -60,15 +60,6 @@ public class AuthService {
 
         redisTemplateRepository.setDataWithExpiryMillis
                 ("RT: " + testMember.getMemberEmail(), refreshToken, expiration);
-
-        Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
-
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setMaxAge(expirationSecond.intValue());
-//        refreshTokenCookie.setDomain("localhost");
-//        refreshTokenCookie.setSecure(true); // HTTPS에서만 전송
-//        refreshTokenCookie.setPath("/"); // 경로 설정
-        response.addCookie(refreshTokenCookie);
 
         return tokenDto;
     }
