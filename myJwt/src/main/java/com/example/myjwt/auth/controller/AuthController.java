@@ -65,7 +65,8 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<String> logout(
-            @CookieValue(value = "refreshToken", required = false) Cookie refreshCookie) {
+            @CookieValue(value = "refreshToken", required = false) Cookie refreshCookie,
+            HttpServletResponse response) {
         if (refreshCookie == null) {
             throw new TokenException(TokenExceptionType.REFRESH_TOKEN_NOT_EXIST);
         }
@@ -74,6 +75,8 @@ public class AuthController {
         authService.logout(refreshToken);
 
         refreshCookie.setMaxAge(0);
+        response.addCookie(refreshCookie);
+
         return ResponseEntity.ok(null);
     }
 }
